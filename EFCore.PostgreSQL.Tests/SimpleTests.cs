@@ -2,6 +2,7 @@
 
 #region Namespaces
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using DotNet.Testcontainers.Builders;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -81,6 +82,23 @@ public class SimpleTests
                                                              SELECT 1
                                                              WHERE {v} >= 0 OR {v} <= 0
                                                              """)
+                                    .ToListAsync();
+        Assert.IsNotEmpty(values);
+    }
+
+    [TestMethod]
+    public async Task QueryWithMultipleReferencesToNpgsqlParameterAsExplicitFormattableStringWorks()
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var sp = scope.ServiceProvider;
+        var dbContext = sp.GetRequiredService<SampleDbContext>();
+
+        var v = new NpgsqlParameter<int>("value", 1);
+        var values = await dbContext.Database.SqlQuery<int>(FormattableStringFactory.Create("""
+                                                                                            SELECT 1
+                                                                                            WHERE {0} >= 0 OR {0} <= 0
+                                                                                            """,
+                                                                                            v))
                                     .ToListAsync();
         Assert.IsNotEmpty(values);
     }
